@@ -45,11 +45,14 @@ def predict_t(samples):
 ###--- Density functions ---###
 
 def log_prior(u, K_inverse):
-    return # TODO: Return log p(u)
-
+    # up to additive constants wrt. u
+    return -0.5 * (u.T @ (K_inverse @ u))
 
 def log_continuous_likelihood(u, v, G):
-    return # TODO: Return observation likelihood p(v|u)
+    # v - G @ u
+    resid = v - G @ u
+    ll = -0.5 * np.sum(resid**2)
+    return ll  # ignoring additive const wrt u
 
 
 def log_probit_likelihood(u, t, G):
@@ -95,23 +98,24 @@ def grw(log_target, u0, data, K, G, n_iters, beta):
     u_prev = u0
 
     # Inverse computed before the for loop for speed
-    Kc = np.linalg.cholesky(K + 1e-6 * np.eye(N))
+    Kc = np.linalg.cholesky(K + 1e-6 * np.eye(K.shape[0]))
     Kc_inverse = np.linalg.inv(Kc)
-    K_inverse = None # TODO: compute the inverse of K using its Cholesky decomopsition
+    K_inverse = Kc_inverse.T @ Kc_inverse  # i.e. K^{-1} = (L^{-1})(L^{-1})^T TODO: compute the inverse of K using its Cholesky decomopsition
 
     lt_prev = log_target(u_prev, data, K_inverse, G)
 
     for i in range(n_iters):
 
-        u_new = None # TODO: Propose new sample - use prior covariance, scaled by beta
+        u_new = u_prev + beta * np.random.randn(len(u_prev)) # TODO: Propose new sample - use prior covariance, scaled by beta
 
         lt_new = log_target(u_new, data, K_inverse, G)
 
-        log_alpha = None # TODO: Calculate acceptance probability based on lt_prev, lt_new
+        log_alpha = lt_new - lt_prev # TODO: Calculate acceptance probability based on lt_prev, lt_new
+
         log_u = np.log(np.random.random())
 
         # Accept/Reject
-        accept = None # TODO: Compare log_alpha and log_u to accept/reject sample (accept should be boolean)
+        accept = log_u < log_alpha # TODO: Compare log_alpha and log_u to accept/reject sample (accept should be boolean)
         if accept:
             acc += 1
             X.append(u_new)
@@ -120,7 +124,7 @@ def grw(log_target, u0, data, K, G, n_iters, beta):
         else:
             X.append(u_prev)
 
-    return X, acc / n_iters
+    return np.array(X), acc / n_iters # prev I had X, acc/n_iters
 
 
 def pcn(log_likelihood, u0, y, K, G, n_iters, beta):

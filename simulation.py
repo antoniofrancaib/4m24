@@ -20,7 +20,7 @@ idx = subsample(N, subsample_factor)
 M = len(idx)                                                                   # Total number of data points
 
 ### Generate K, the covariance of the Gaussian process, and sample from N(0,K) using a stable Cholesky decomposition
-l = 0.2
+l = 0.3
 K = GaussianKernel(coords, l)
 z = np.random.randn(N, )
 Kc = np.linalg.cholesky(K + 1e-6 * np.eye(N))
